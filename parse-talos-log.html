@@ -7,7 +7,6 @@
 
 var VERIFICATION_TOLERANCE_PERCENTAGE = 0.1;
 
-
 // reference calculations of subtests/suite summaries, per suite
 var summaries_reference = {
   _default: {
@@ -97,7 +96,7 @@ var summaries_reference = {
   },
 
   tscrollx: {
-    subtest: func_removeFirstThenMedian(1),
+    subtest: func_removeFirstThenMedian(5),
     suite  : func_arrayifyThenGeomean()
   },
 
@@ -430,14 +429,17 @@ function avg(v) {
   return v.length ? sum(v) / v.length : 0;
 }
 
+function compareNumbers(a, b) {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
 function median(v) {
-  v = v.slice().sort();
+  v = v.slice().sort(compareNumbers);
   var len = v.length;
 
   if (len % 2)
     return v[(len - 1) / 2];
     
-  //return v[len / 2];
   return avg([v[len / 2], v[len / 2 - 1]]);
 }
 
