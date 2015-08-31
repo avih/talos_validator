@@ -34,6 +34,14 @@ var summaries_reference = {
   cart: {
     subtest: func_removeFirstThenMedian(1)
   },
+
+  glterrain: {
+    subtest: func_removeFirstThenMedian(1)
+  },
+
+  tp5o_scroll: {
+    subtest: func_removeFirstThenMedian(1)
+  },
 }
 
 // the basic subtest summary filter template
@@ -408,10 +416,10 @@ function closeEnough(a, b) {
 // Promise - NoPromise.pico for the browser: https://github.com/avih/nopromise/tree/master/pico
 function NoPromise(){function e(e){n||(n=this,o=e,c.forEach(r))}function t(e,t){function i(){var r=2>n?e:t;typeof r!=p?(2>n?a:s)(o):f(0,r)}function f(e,t){function n(e){c++||s(e)}var r,c=0;try{t&&(e=t(o)),e==u?s(TypeError()):(typeof e==p||e&&"object"==typeof e)&&typeof(r=e.then)==p?r.call(e,function(e){c++||f(e)},n):a(e)}catch(i){n(i)}}var u=NoPromise(),a=u.resolve,s=u.reject,p="function";return n?r(i):c.push(i),u}var n,o,r=setTimeout,c=[],i={resolve:e.bind(1),reject:e.bind(2),then:t};return i.promise=i};NoPromise.deferred=NoPromise;
 
-function startFetch() {
+function startFetch(optionalUrl) {
   logClear();
   //"file:///E:/dev/moz/src/talos-validator/data/mozilla-inbound_ubuntu64_hw_test-svgr-e10s-bm104-tests1-linux-build213.txt"
-  processUrl($("userUrl").value);
+  processUrl(optionalUrl || $("userUrl").value);
 }
 
 function startData() {
@@ -429,7 +437,9 @@ function startData() {
     <input type = "text" size = "100" id="userUrl"></input>
     <button type = "submit">Fetch log and analyse</button>
     <br/>
-    Sample log within this repo: data/mozilla-inbound_ubuntu64_hw_test-svgr-e10s-bm104-tests1-linux-build213.txt
+    Analyse sample job log (within this repo):
+      <a href="javascript:startFetch('data/s_sample_log.txt.gz')">s job</a>
+      <a href="javascript:startFetch('data/g_sample_log.txt.gz')">g job</a>
   </form>
   <br/>
 
