@@ -159,8 +159,8 @@ function verifyTalosSubtestSummary(suiteName, subtestName, subtestSummary, repli
   //log("got subtest expected: " + expected);
   var ok = closeEnough(subtestSummary, expected);
   log("   " + (ok ? "OK   " : "ERROR") + ":  subtest " + suiteName + " / " + subtestName +
-      ": expected: " + expected + "   got: " + subtestSummary +
-      "   from replicates: " + replicates);
+      ": expected: " + expected + "   got: " + subtestSummary,
+      "toggle replicates", replicates);
   return ok;
 }
 
@@ -174,8 +174,8 @@ function verifyTalosSuiteSummary(suiteName, suiteSummary, subtest_summaries) {
   //  throw("Suite summary: expected: " + expected + "   got: " + suiteSummary);
   var ok = closeEnough(suiteSummary, expected);
   log((ok ? "OK   " : "ERROR") + ":  Suite " + suiteName +
-      ": expected: " + expected + "   got: " + suiteSummary +
-      "  from summaries: " + JSON.stringify(subtest_summaries));
+      ": expected: " + expected + "   got: " + suiteSummary,
+      "toggle summaries", JSON.stringify(subtest_summaries));
   return ok;
 }
 
@@ -301,8 +301,26 @@ function gunzipLog(data) {
 function $(id) { return document.getElementById(id); }
 
 var OUT_ID = "out";
-function log(text) {
-  $(OUT_ID).innerHTML += text + "\n";
+var out_id = 1;
+
+function toggleCollapsed(id) {
+  var s = $(id).style;
+
+  if (s.display == "none") {
+    s.display = "inline";
+  } else {
+    s.display = "none";
+  }
+}
+
+function log(text, collapsedTitle, collapsedData) {
+  var out = text;
+  if (collapsedTitle && collapsedData) {
+    var id = "out_id_" + ++out_id;
+    out += "   <a href = 'javascript:toggleCollapsed(\"" + id + "\")'>" + collapsedTitle + "</a>" +
+           "<span style = 'display: none' id = '" + id + "'>:\n" + collapsedData + "</span>";
+  }
+  $(OUT_ID).innerHTML += out + "\n";
 }
 
 function logJson(obj) {
