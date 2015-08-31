@@ -11,37 +11,111 @@ var VERIFICATION_TOLERANCE_PERCENTAGE = 0.1;
 // reference calculations of subtests/suite summaries, per suite
 var summaries_reference = {
   _default: {
+    subtest: function(data) {
+               log("Warning: using default subtest summary");
+               return func_removeFirstThenMedian(1)(data);
+             },
+    suite:   function(data) {
+               log("Warning: using default suite summary");
+               return func_arrayifyThenGeomean()(data);
+             }
+  },
+
+  // c job
+  tresize: {
+    subtest: func_removeFirstThenMedian(5),
+    suite  : func_arrayifyThenGeomean()
+  },
+
+  tcanvasmark: {
     subtest: func_removeFirstThenMedian(1),
-    suite:   func_arrayifyThenGeomean()
+    suite  : func_arrayifyThenGeomean()
   },
+  
+  // d job: TODO: dromaeo_css, kraken, v8
 
-  tsvgx: {
-    subtest: func_removeFirstThenMedian(5)
-  },
-
-  tsvgr_opacity: {
-    subtest: func_removeFirstThenMedian(5)
-  },
-
-  tscrollx: {
-    subtest: func_removeFirstThenMedian(1)
-  },
-
-  tart: {
-    subtest: func_removeFirstThenMedian(1)
-  },
-
-  cart: {
-    subtest: func_removeFirstThenMedian(1)
+  // g1 job
+  tp5o_scroll: {
+    subtest: func_removeFirstThenMedian(1),
+    suite  : func_arrayifyThenGeomean()
   },
 
   glterrain: {
-    subtest: func_removeFirstThenMedian(1)
+    subtest: func_removeFirstThenMedian(1),
+    suite  : func_arrayifyThenGeomean()
+  },
+  
+
+  // g2 job
+  damp: {
+    subtest: func_removeFirstThenMedian(1),
+    suite  : func_arrayifyThenGeomean()
+  },
+  
+  tps: {
+    subtest: func_removeFirstThenMedian(1),
+    suite  : func_arrayifyThenGeomean()
+  },
+  
+
+  // o job
+  a11yr: {
+    subtest: func_removeFirstThenMedian(1),
+    suite  : func_arrayifyThenGeomean()
   },
 
-  tp5o_scroll: {
-    subtest: func_removeFirstThenMedian(1)
+  ts_paint: {
+    subtest: func_removeFirstThenMedian(1),
+    suite  : func_arrayifyThenGeomean()
   },
+
+  tpaint: {
+    subtest: func_removeFirstThenMedian(5),
+    suite  : func_arrayifyThenGeomean()
+  },
+
+  sessionrestore: {
+    subtest: func_removeFirstThenMedian(1),
+    suite  : func_arrayifyThenGeomean()
+  },
+
+  sessionrestore_no_auto_restore: {
+    subtest: func_removeFirstThenMedian(1),
+    suite  : func_arrayifyThenGeomean()
+  },
+
+  
+  // s job
+  tsvgx: {
+    subtest: func_removeFirstThenMedian(5),
+    suite  : func_arrayifyThenGeomean()
+  },
+
+  tsvgr_opacity: {
+    subtest: func_removeFirstThenMedian(5),
+    suite  : func_arrayifyThenGeomean()
+  },
+
+  tscrollx: {
+    subtest: func_removeFirstThenMedian(1),
+    suite  : func_arrayifyThenGeomean()
+  },
+
+  tart: {
+    subtest: func_removeFirstThenMedian(1),
+    suite  : func_arrayifyThenGeomean()
+  },
+
+  cart: {
+    subtest: func_removeFirstThenMedian(1),
+    suite  : func_arrayifyThenGeomean()
+  },
+
+  // tp job
+  tp5o: {
+    subtest: func_removeFirstThenMedian(5),
+    suite  : func_arrayifyThenGeomean()
+  }
 }
 
 // the basic subtest summary filter template
@@ -168,7 +242,7 @@ function verifyTalosSubtestSummary(suiteName, subtestName, subtestSummary, repli
   var ok = closeEnough(subtestSummary, expected);
   log("   " + (ok ? "OK   " : "ERROR") + ":  subtest " + suiteName + " / " + subtestName +
       ": expected: " + expected + "   got: " + subtestSummary,
-      "toggle replicates", replicates);
+      "replicates", "        " + replicates);
   return ok;
 }
 
@@ -183,7 +257,7 @@ function verifyTalosSuiteSummary(suiteName, suiteSummary, subtest_summaries) {
   var ok = closeEnough(suiteSummary, expected);
   log((ok ? "OK   " : "ERROR") + ":  Suite " + suiteName +
       ": expected: " + expected + "   got: " + suiteSummary,
-      "toggle summaries", JSON.stringify(subtest_summaries));
+      "subtest summaries", "        " + JSON.stringify(subtest_summaries));
   return ok;
 }
 
@@ -416,15 +490,20 @@ function closeEnough(a, b) {
 // Promise - NoPromise.pico for the browser: https://github.com/avih/nopromise/tree/master/pico
 function NoPromise(){function e(e){n||(n=this,o=e,c.forEach(r))}function t(e,t){function i(){var r=2>n?e:t;typeof r!=p?(2>n?a:s)(o):f(0,r)}function f(e,t){function n(e){c++||s(e)}var r,c=0;try{t&&(e=t(o)),e==u?s(TypeError()):(typeof e==p||e&&"object"==typeof e)&&typeof(r=e.then)==p?r.call(e,function(e){c++||f(e)},n):a(e)}catch(i){n(i)}}var u=NoPromise(),a=u.resolve,s=u.reject,p="function";return n?r(i):c.push(i),u}var n,o,r=setTimeout,c=[],i={resolve:e.bind(1),reject:e.bind(2),then:t};return i.promise=i};NoPromise.deferred=NoPromise;
 
-function startFetch(optionalUrl) {
+function startFetch() {
   logClear();
   //"file:///E:/dev/moz/src/talos-validator/data/mozilla-inbound_ubuntu64_hw_test-svgr-e10s-bm104-tests1-linux-build213.txt"
-  processUrl(optionalUrl || $("userUrl").value);
+  processUrl($("userUrl").value);
 }
 
 function startData() {
   logClear();
   processLog($("userLog").value);
+}
+
+function sampleLog(url) {
+  $("userUrl").value = url;
+  startFetch();
 }
 
 //window.addEventListener("load", process);
@@ -438,8 +517,13 @@ function startData() {
     <button type = "submit">Fetch log and analyse</button>
     <br/>
     Analyse sample job log (within this repo):
-      <a href="javascript:startFetch('data/s_sample_log.txt.gz')">s job</a>
-      <a href="javascript:startFetch('data/g_sample_log.txt.gz')">g job</a>
+      <a href="javascript:sampleLog('data/c_sample_log.txt.gz')">c</a>
+      <a href="javascript:sampleLog('data/d_sample_log.txt.gz')">d</a>
+      <a href="javascript:sampleLog('data/g1_sample_log.txt.gz')">g1</a>
+      <a href="javascript:sampleLog('data/g2_sample_log.txt.gz')">g2</a>
+      <a href="javascript:sampleLog('data/o_sample_log.txt.gz')">o</a>
+      <a href="javascript:sampleLog('data/s_sample_log.txt.gz')">s</a>
+      <a href="javascript:sampleLog('data/tp_sample_log.txt.gz')">tp</a>
   </form>
   <br/>
 
