@@ -29,7 +29,7 @@ var summaries_reference = {
 
   tcanvasmark: {
     subtest: func_removeFirstThenMedian(1),
-    suite  : func_arrayifyThenGeomean()
+    //suite  : func_arrayifyThenGeomean()
   },
   
   // d job: TODO: dromaeo_css, kraken, v8
@@ -183,8 +183,8 @@ function fetchTalosLog(logUrl) {
 // - The log file is the one we need (doesn't verify platform etc)
 function processLog(talosLog) {
   var data = jsonFromTalosLog(talosLog);
-  //log("Talos JSON:");
-  //logJson(data);
+  log("", "Talos JSON", JSON.stringify(data, null, 2));
+  log("\n\n");
 
   data = simplifyTalosData(data);
   //log("Simplified data:");
@@ -373,7 +373,7 @@ function gunzipLog(data) {
        asciistring += String.fromCharCode(plain[i]);
   }
 
-  log("gunzipped data, length: " + data.length);
+  log("gunzipped data, length: " + asciistring.length);
   return asciistring;
 }
 
