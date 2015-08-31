@@ -1,0 +1,404 @@
+<html>
+<head>
+<meta charset="utf-8"/>
+
+<script src = "3rd_party/gunzip.min.js"></script>
+<script>
+
+var VERIFICATION_TOLERANCE_PERCENTAGE = 1;
+
+
+// reference calculations of subtests/suite summaries, per suite
+var summaries_reference = {
+  _default: {
+    subtest: func_removeFirstThenMedian(1),
+    suite:   func_arrayifyThenGeomean()
+  },
+
+  tsvgx: {
+    subtest: func_removeFirstThenMedian(5)
+  },
+
+  tsvgr_opacity: {
+    subtest: func_removeFirstThenMedian(5)
+  },
+
+  tscrollx: {
+    subtest: func_removeFirstThenMedian(1)
+  },
+
+  tart: {
+    subtest: func_removeFirstThenMedian(1)
+  },
+
+  cart: {
+    subtest: func_removeFirstThenMedian(1)
+  },
+}
+
+// the basic subtest summary filter template
+function func_removeFirstThenMedian(firstN) {
+  return function(replicates) {
+    return median(replicates.slice(firstN));
+  }
+}
+
+// basic suite summary from named (but unordered) subtest summaries
+function func_arrayifyThenGeomean() {
+  return function(subtests_summaries_object) {
+    var arr = [];
+    for (var i in subtests_summaries_object) {
+      arr.push(subtests_summaries_object[i]);
+    }
+    return geomean(arr);
+  };
+}
+
+function process(talosLogUrl) {
+  log("Fetching talos log from " + talosLogUrl);
+  fetchTalosLog(talosLogUrl)
+  .then(
+    function(talosLog) {
+      log("OK: Got talos log.\n\n");
+      setTimeout(processLog, 0, talosLog);
+    },
+    function(reason) {
+      log("Error: " + reason);
+    }
+  );
+}
+
+
+// returns a Promise which resolves to the log string
+function fetchTalosLog(logUrl) {
+  return readBinUncached(logUrl)
+         .then(function(data) {
+            if (logUrl.indexOf(".gz") > 0) {
+              data = gunzipLog(data);
+            }
+
+            return String(data);
+         });
+}
+
+// Verifies the talos summaries from replicates,
+// Returns a Promise which resolves to a summaries (which are used at perfherder) object of:
+//  {
+//    suite_name_1: {
+//      summary: <value>
+//      subtest_summaries: {
+//        subtest_name_1: <subtest1 summary value>,
+//        subtest_name_2: <subtest2 summary value>,
+//        ...
+//      }
+//    },
+//    suite_name_2: { ... }
+//    ...
+//  }
+//
+// Makes the following (currently valid) assumptions:
+// - A talos log doesn't have the same suite name twice
+// - The log file is the one we need (doesn't verify platform etc)
+function processLog(talosLog) {
+  var data = jsonFromTalosLog(talosLog);
+  //log("Talos JSON:");
+  //logJson(data);
+
+  data = simplifyTalosData(data);
+  //log("Simplified data:");
+  //logJson(data);
+  
+  // throws a descriptive error on failure
+  verifyTalosSummaries(data);
+  
+  // remove replicates which are not used further
+  for (var i in data) {
+    delete data[i]["subtest_replicates"];
+  }
+  log("Effective talos output:");
+  logJson(data);
+
+  return data;
+}
+
+// Takes the TALOSDATA object and simplifies it to the same
+// structure that processLog returns, with another object per suite:
+// subtest_replicates: {
+//   subtest_name_1: [rep1, rep2, ...],
+//   subtest_name_2: [rep1, rep2, ...],
+//   ...
+// }
+function simplifyTalosData(data) {
+  var results = {};
+
+  for (var i in data) {
+    var suite = data[i]["testrun"]["suite"];
+    suite = results[suite] = {};
+    suite["summary"] = data[i]["summary"]["suite"];
+
+    var subtests = suite["subtest_summaries"] = {};
+    for (var j in data[i]["summary"]["subtests"]) {
+      subtests[j] = data[i]["summary"]["subtests"][j]["filtered"];
+    }
+    
+    var replicates = suite["subtest_replicates"] = {};
+    for (var k in data[i]["results"]) {
+      replicates[k] = data[i]["results"][k];
+    }
+  }
+  
+  return results;
+}
+
+function verifyTalosSubtestSummary(suiteName, subtestName, subtestSummary, replicates) {
+  var reference_func = summaries_reference[suiteName] && summaries_reference[suiteName]["subtest"]
+                        ? summaries_reference[suiteName]["subtest"]
+                        : summaries_reference["_default"]["subtest"];
+  //log("got replicates: " + replicates + "\ngot subtest reference: " + reference_func);
+  var expected = reference_func(replicates);
+  //log("got subtest expected: " + expected);
+  var ok = closeEnough(subtestSummary, expected);
+  log("   " + (ok ? "OK   " : "ERROR") + ":  subtest " + suiteName + " / " + subtestName +
+      ": expected: " + expected + "   got: " + subtestSummary +
+      "   from replicates: " + replicates);
+  return ok;
+}
+
+function verifyTalosSuiteSummary(suiteName, suiteSummary, subtest_summaries) {
+  var reference_func = summaries_reference[suiteName] && summaries_reference[suiteName]["suite"]
+                        ? summaries_reference[suiteName]["suite"]
+                        : summaries_reference["_default"]["suite"];
+
+  var expected = reference_func(subtest_summaries);
+  //if (!closeEnough(suiteSummary, expected))
+  //  throw("Suite summary: expected: " + expected + "   got: " + suiteSummary);
+  var ok = closeEnough(suiteSummary, expected);
+  log((ok ? "OK   " : "ERROR") + ":  Suite " + suiteName +
+      ": expected: " + expected + "   got: " + suiteSummary +
+      "  from summaries: " + JSON.stringify(subtest_summaries));
+  return ok;
+}
+
+// input a single suite data from the simplified data
+function verifyTalosSuiteSummaries(suiteName, suiteData) {
+  var numErrors = 0;
+  numErrors += verifyTalosSuiteSummary(suiteName, suiteData["summary"], suiteData["subtest_summaries"]);
+
+  for (var i in suiteData["subtest_summaries"]) {
+    //log("verifying replicates for " + i + "  expected: " + suiteData["subtest_summaries"][i] + "   replicates: " + suiteData["subtest_replicates"][i]);
+    numErrors += verifyTalosSubtestSummary(suiteName, i, suiteData["subtest_summaries"][i], suiteData["subtest_replicates"][i]);
+  }
+  
+  return numErrors;
+}
+
+
+// input: the entire simplified talos data
+function verifyTalosSummaries(data) {
+  log("Verifying summaries within the log...\n\n");
+  for (var suite in data) {
+    verifyTalosSuiteSummaries(suite, data[suite]);
+    log("\n\n");
+  }
+}
+
+function jsonFromTalosLog(talosLog) {
+  var start = talosLog.split("TALOSDATA: ")[1];
+  if (!start) {
+    log("Error: cannot detect 'TALOSDATA' section at the log");
+    return false;
+  }
+  
+  return JSON.parse(start.split("}}]")[0] + "}}]");
+}
+
+
+// ---------------- utilities -------------------
+
+
+
+// XHR as a promise. control: optional object with optional properties, as follows:
+//   method: defaults to "GET",
+//   requestType: e.g. "arraybuffer",
+//   overrideMimeType: e.g. "text/plain; charset=x-user-defined"
+//   requestHeaders: array of request headers where each item is an array of [key, value]
+function read(url, control) {
+  var d = NoPromise.deferred();
+  try {      
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4)
+        return (xhr.status < 400) ? d.resolve(xhr)
+                                  : d.reject("[Failed XHR for '" + url + "'] " + xhr.status + " " + xhr.statusText);
+    };
+
+    control = control || {};
+    xhr.open((control.method || "GET"), url, true);
+    if (control.requestType)       xhr.requestType = control.requestType;
+    if (control.overrideMimeType)  xhr.overrideMimeType(control.overrideMimeType);
+    (control.requestHeaders || []).forEach(function(h) { xhr.setRequestHeader(h[0], h[1]); });
+    xhr.send();
+
+  } catch (e) {
+    d.reject("[Failed XHR for '" + url + "'] " + e);
+  }
+  return d.promise;
+}
+
+// Wraps the generic read and resolves a binary xhr.response,
+// while applying client+server anti-cache measures
+function readBinUncached(url, avoidRandQueryArg) {
+  var control = {
+    requestType:      "arraybuffer",
+    overrideMimeType: "text/plain; charset=x-user-defined",
+    requestHeaders: [ // cache control - server
+      ["If-None-Match", Math.random()],
+      ["Cache-Control", "no-cache,max-age=0"],
+      ["Pragma",        "no-cache"]
+    ]
+  };
+
+  // cache control - client (add random query string if not data: uri)
+  if (!avoidRandQueryArg && url.toLowerCase().indexOf("data:") < 0)
+    url += (url.indexOf("?") >= 0 ? "&" : "?") + "_junkstamp=" + Math.random();
+
+  var d = NoPromise.deferred();
+  read(url, control).then(function(xhr){ d.resolve(xhr.response); }, d.reject);
+  return d.promise;
+}
+
+function gunzipLog(data) {
+  // sample from http://dougbtv.com/2014/04/16/decompressing-gzipped-with-javascript/
+  // using: https://github.com/imaya/zlib.js/blob/master/bin/gunzip.min.js
+  log("gunzip log ... orig length: " + data.length);
+    // Create a byte array.
+  var bytes = [];
+
+  // Walk through each character in the stream.
+  for (var fileidx = 0; fileidx < data.length; fileidx++) {
+      var abyte = data.charCodeAt(fileidx) & 0xff;
+      bytes.push(abyte);
+  }
+  
+  var  gunzip  =  new  Zlib.Gunzip ( bytes ); 
+  var  plain  =  gunzip.decompress ();
+  if (!plain)
+    return false;
+
+  // Now go ahead and create an ascii string from all those bytes.
+  var asciistring = "";
+  for (var i = 0; i < plain.length; i++) {         
+       asciistring += String.fromCharCode(plain[i]);
+  }
+
+  log("gunzipped data, length: " + data.length);
+  return asciistring;
+}
+
+
+//// log utils ////
+
+function $(id) { return document.getElementById(id); }
+
+var OUT_ID = "out";
+function log(text) {
+  $(OUT_ID).innerHTML += text + "\n";
+}
+
+function logJson(obj) {
+  log(JSON.stringify(obj, null, 2));
+}
+
+function fixed(n) {
+  return (1 * n).toFixed(1);
+}
+
+// stats and filtering
+
+function sum(v) {
+  var s=0;
+  for (var i in v)
+    s+=v[i];
+  return s;
+}
+
+function avg(v) {
+  return v.length ? sum(v) / v.length : 0;
+}
+
+function median(v) {
+  v = v.slice().sort();
+  var len = v.length;
+
+  if (len % 2)
+    return v[(len - 1) / 2];
+    
+  //return v[len / 2];
+  return avg([v[len / 2], v[len / 2 - 1]]);
+}
+
+function geomean(v) {
+  return _geomean2(v);
+}
+
+// broken by 0 among the values
+function _geomean1(v) {
+  res = 1;
+  for (var i in v)
+    res *= v[i];
+
+  return Math.pow(res, 1 / v.length);
+}
+
+// hack the formula to not break by 0
+function _geomean2(v) {
+  res = 0;
+  for (var i in v)
+    res += Math.log(v[i] + 1);
+
+  return Math.exp(res / v.length) - 1;
+}
+
+// avoid 0 issues by ignoring them
+function _geomean3(v) {
+  res = 0;
+  var count = 0;
+  for (var i in v) {
+    if (v[i]) {
+      count++;
+      res += Math.log(v[i]);
+    }
+  }
+
+  return Math.exp(res / count);
+}
+
+
+function removeFirst(n, v) {
+  return v.slice(n);
+}
+
+function closeEnough(a, b) {
+  var ratio = (a > b) ? a / b : b / a;
+  return (ratio - 1) * 100 < VERIFICATION_TOLERANCE_PERCENTAGE;
+}
+
+// Promise - NoPromise.pico for the browser: https://github.com/avih/nopromise/tree/master/pico
+function NoPromise(){function e(e){n||(n=this,o=e,c.forEach(r))}function t(e,t){function i(){var r=2>n?e:t;typeof r!=p?(2>n?a:s)(o):f(0,r)}function f(e,t){function n(e){c++||s(e)}var r,c=0;try{t&&(e=t(o)),e==u?s(TypeError()):(typeof e==p||e&&"object"==typeof e)&&typeof(r=e.then)==p?r.call(e,function(e){c++||f(e)},n):a(e)}catch(i){n(i)}}var u=NoPromise(),a=u.resolve,s=u.reject,p="function";return n?r(i):c.push(i),u}var n,o,r=setTimeout,c=[],i={resolve:e.bind(1),reject:e.bind(2),then:t};return i.promise=i};NoPromise.deferred=NoPromise;
+
+function start() {
+  //"file:///E:/dev/moz/src/talos-validator/data/mozilla-inbound_ubuntu64_hw_test-svgr-e10s-bm104-tests1-linux-build213.txt"
+  process($("userUrl").value);
+}
+
+//window.addEventListener("load", process);
+</script>
+</head>
+
+<body>
+  <form action="javascript:start()">
+  Enter talos log URL: <input type="text" id="userUrl"></input>
+  <button type = "submit">Go</button>
+  </form>
+  <pre id = "out"></pre>
+</body>
