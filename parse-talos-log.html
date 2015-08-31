@@ -5,7 +5,7 @@
 <script src = "3rd_party/gunzip.min.js"></script>
 <script>
 
-var VERIFICATION_TOLERANCE_PERCENTAGE = 1;
+var VERIFICATION_TOLERANCE_PERCENTAGE = 0.1;
 
 
 // reference calculations of subtests/suite summaries, per suite
@@ -54,7 +54,7 @@ function func_arrayifyThenGeomean() {
   };
 }
 
-function process(talosLogUrl) {
+function processUrl(talosLogUrl) {
   log("Fetching talos log from " + talosLogUrl);
   fetchTalosLog(talosLogUrl)
   .then(
@@ -313,6 +313,10 @@ function fixed(n) {
   return (1 * n).toFixed(1);
 }
 
+function logClear() {
+  $(OUT_ID).innerHTML = "";
+}
+
 // stats and filtering
 
 function sum(v) {
@@ -386,9 +390,15 @@ function closeEnough(a, b) {
 // Promise - NoPromise.pico for the browser: https://github.com/avih/nopromise/tree/master/pico
 function NoPromise(){function e(e){n||(n=this,o=e,c.forEach(r))}function t(e,t){function i(){var r=2>n?e:t;typeof r!=p?(2>n?a:s)(o):f(0,r)}function f(e,t){function n(e){c++||s(e)}var r,c=0;try{t&&(e=t(o)),e==u?s(TypeError()):(typeof e==p||e&&"object"==typeof e)&&typeof(r=e.then)==p?r.call(e,function(e){c++||f(e)},n):a(e)}catch(i){n(i)}}var u=NoPromise(),a=u.resolve,s=u.reject,p="function";return n?r(i):c.push(i),u}var n,o,r=setTimeout,c=[],i={resolve:e.bind(1),reject:e.bind(2),then:t};return i.promise=i};NoPromise.deferred=NoPromise;
 
-function start() {
+function startFetch() {
+  logClear();
   //"file:///E:/dev/moz/src/talos-validator/data/mozilla-inbound_ubuntu64_hw_test-svgr-e10s-bm104-tests1-linux-build213.txt"
-  process($("userUrl").value);
+  processUrl($("userUrl").value);
+}
+
+function startData() {
+  logClear();
+  processLog($("userLog").value);
 }
 
 //window.addEventListener("load", process);
@@ -396,9 +406,19 @@ function start() {
 </head>
 
 <body>
-  <form action="javascript:start()">
-  Enter talos log URL: <input type="text" id="userUrl"></input>
-  <button type = "submit">Go</button>
+  <form action="javascript:startFetch()">
+    Enter talos log URL:
+    <input type = "text" size = "100" id="userUrl"></input>
+    <button type = "submit">Fetch log and analyse</button>
+    <br/>
+    Sample log within this repo: data/mozilla-inbound_ubuntu64_hw_test-svgr-e10s-bm104-tests1-linux-build213.txt
+  </form>
+  <br/>
+
+  <form action="javascript:startData()">
+    Or paste a full log here:
+    <textarea rows = "10" cols = "90" id="userLog"></textarea>
+    <button type = "submit">Analyse log</button>
   </form>
   <pre id = "out"></pre>
 </body>
