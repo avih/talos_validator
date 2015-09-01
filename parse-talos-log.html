@@ -206,7 +206,7 @@ function processUrl(talosLogUrl) {
 
 // returns a Promise which resolves to the log string
 function fetchTalosLog(logUrl) {
-  return readBinUncached(logUrl)
+  return readBinUncached(logUrl, false, true)
          .then(function(data) {
             if (logUrl.indexOf(".gz") > 0) {
               data = gunzipLog(data);
@@ -380,7 +380,8 @@ function read(url, control) {
 
 // Wraps the generic read and resolves a binary xhr.response,
 // while applying client+server anti-cache measures
-function readBinUncached(url, avoidRandQueryArg) {
+// Set avoidHeaderModification for CORS requests (cross origin resource sharing)
+function readBinUncached(url, avoidRandQueryArg, avoidHeaderModification) {
   var control = {
     requestType:      "arraybuffer",
     overrideMimeType: "text/plain; charset=x-user-defined",
@@ -390,6 +391,10 @@ function readBinUncached(url, avoidRandQueryArg) {
       ["Pragma",        "no-cache"]
     ]
   };
+
+  if (avoidHeaderModification) {
+    control.requestHeaders = [];
+  }
 
   // cache control - client (add random query string if not data: uri)
   if (!avoidRandQueryArg && url.toLowerCase().indexOf("data:") < 0)
@@ -402,8 +407,13 @@ function readBinUncached(url, avoidRandQueryArg) {
 
 function gunzipLog(data) {
   // sample from http://dougbtv.com/2014/04/16/decompressing-gzipped-with-javascript/
-  // using: https://github.com/imaya/zlib.js/blob/master/bin/gunzip.min.js
-  log("gunzip log ... orig length: " + data.length);
+  // using: https://github.com/imaya/zlib.js/blob/master/bin/gunzip.min.js (MIT)
+
+  if (!data.length) {
+    throw("Data is empty. Aborting");
+  }
+
+  log("gunzip data ... orig length: " + data.length);
     // Create a byte array.
   var bytes = [];
 
@@ -413,8 +423,14 @@ function gunzipLog(data) {
       bytes.push(abyte);
   }
 
-  var  gunzip  =  new  Zlib.Gunzip ( bytes );
-  var  plain  =  gunzip.decompress ();
+  var  gunzip, plain;
+  try {
+    gunzip = new Zlib.Gunzip ( bytes );
+    plain = gunzip.decompress ();
+  } catch (e) {
+    log("Warning: can't gunzip. Assuming plain text.");
+    return String(data);
+  }
   if (!plain)
     return false;
 
