@@ -10,130 +10,131 @@ var VERIFICATION_TOLERANCE_PERCENTAGE = 0.1;
 // reference calculations of subtests/suite summaries, per suite
 var summaries_reference = {
   _default: {
-    subtest: function(data) {
-               log("   Warning: using default subtest summary");
-               return func_medianAfterRemovingFirst(1)(data);
+
+    // replicates is an ordered array of numbers
+    subtest: function(replicates, subtestName) {
+               log("   Warning: using default summary for subtest " + subtestName);
+               return medianAfterRemovingFirst(1)(replicates);
              },
-    suite:   function(data) {
-               log("Warning: using default suite summary");
-               return arrayifyThenGeomean(data);
+
+    // subtestsObj is in the form of {subtest_1_name: subtest_1_summary_number, subtest_2_name: subtest_2_summary_number, ... }
+    suite:   function(subtestsObj, suiteName) {
+               log("Warning: using default summary for suite " + suiteName);
+               return geomeanSubtests(subtestsObj);
              }
   },
 
+
   // c job
   tresize: {
-    subtest: func_medianAfterRemovingFirst(5),
-    suite  : arrayifyThenGeomean
+    subtest: medianAfterRemovingFirst(5),
+    suite  : geomeanSubtests
   },
 
   tcanvasmark: {
-    subtest: func_medianAfterRemovingFirst(1),
-    suite  : arrayifyThenSum
+    subtest: medianAfterRemovingFirst(1),
+    suite  : sumSubtests
   },
-  
-  // d job: TODO: v8 subtest could be buggy at talos, or log missing the replicates
+
+  // d job
   v8_7: {
-    subtest: v8SubtestSUmmary,
-    suite  : function (subtestsObj) { return 100 * arrayifyThenGeomean(subtestsObj); }
+    subtest: v8SubtestSummary,
+    suite  : function (subtests) { return 100 * geomeanSubtests(subtests); }
   },
 
   kraken: {
     subtest: average,
-    suite  : arrayifyThenSum
+    suite  : sumSubtests
   },
 
   dromaeo_css: {
-    subtest: dromaeo_subtest_summary,
-    suite  : arrayifyThenGeomean
+    subtest: dromaeoSubtestSummary,
+    suite  : geomeanSubtests
   },
-
 
   // g1 job
   tp5o_scroll: {
-    subtest: func_medianAfterRemovingFirst(1),
-    suite  : arrayifyThenGeomean
+    subtest: medianAfterRemovingFirst(1),
+    suite  : geomeanSubtests
   },
 
   glterrain: {
-    subtest: func_medianAfterRemovingFirst(1),
-    suite  : arrayifyThenGeomean
+    subtest: medianAfterRemovingFirst(1),
+    suite  : geomeanSubtests
   },
-  
 
   // g2 job
   damp: {
-    subtest: func_medianAfterRemovingFirst(1),
-    suite  : arrayifyThenGeomean
+    subtest: medianAfterRemovingFirst(1),
+    suite  : geomeanSubtests
   },
-  
+
   tps: {
-    subtest: func_medianAfterRemovingFirst(1),
-    suite  : arrayifyThenGeomean
+    subtest: medianAfterRemovingFirst(1),
+    suite  : geomeanSubtests
   },
-  
 
   // o job
   a11yr: {
-    subtest: func_medianAfterRemovingFirst(1),
-    suite  : arrayifyThenGeomean
+    subtest: medianAfterRemovingFirst(1),
+    suite  : geomeanSubtests
   },
 
   ts_paint: {
-    subtest: func_medianAfterRemovingFirst(1),
-    suite  : arrayifyThenGeomean
+    subtest: medianAfterRemovingFirst(1),
+    suite  : geomeanSubtests
   },
 
   tpaint: {
-    subtest: func_medianAfterRemovingFirst(5),
-    suite  : arrayifyThenGeomean
+    subtest: medianAfterRemovingFirst(5),
+    suite  : geomeanSubtests
   },
 
   sessionrestore: {
-    subtest: func_medianAfterRemovingFirst(1),
-    suite  : arrayifyThenGeomean
+    subtest: medianAfterRemovingFirst(1),
+    suite  : geomeanSubtests
   },
 
   sessionrestore_no_auto_restore: {
-    subtest: func_medianAfterRemovingFirst(1),
-    suite  : arrayifyThenGeomean
+    subtest: medianAfterRemovingFirst(1),
+    suite  : geomeanSubtests
   },
 
-  
   // s job
   tsvgx: {
-    subtest: func_medianAfterRemovingFirst(5),
-    suite  : arrayifyThenGeomean
+    subtest: medianAfterRemovingFirst(5),
+    suite  : geomeanSubtests
   },
 
   tsvgr_opacity: {
-    subtest: func_medianAfterRemovingFirst(5),
-    suite  : arrayifyThenGeomean
+    subtest: medianAfterRemovingFirst(5),
+    suite  : geomeanSubtests
   },
 
   tscrollx: {
-    subtest: func_medianAfterRemovingFirst(5),
-    suite  : arrayifyThenGeomean
+    subtest: medianAfterRemovingFirst(5),
+    suite  : geomeanSubtests
   },
 
   tart: {
-    subtest: func_medianAfterRemovingFirst(1),
-    suite  : arrayifyThenGeomean
+    subtest: medianAfterRemovingFirst(1),
+    suite  : geomeanSubtests
   },
 
   cart: {
-    subtest: func_medianAfterRemovingFirst(1),
-    suite  : arrayifyThenGeomean
+    subtest: medianAfterRemovingFirst(1),
+    suite  : geomeanSubtests
   },
 
   // tp job
   tp5o: {
-    subtest: func_medianAfterRemovingFirst(5),
-    suite  : arrayifyThenGeomean
+    subtest: medianAfterRemovingFirst(5),
+    suite  : geomeanSubtests
   }
 }
 
 // the basic subtest summary filter template
-function func_medianAfterRemovingFirst(firstN) {
+function medianAfterRemovingFirst(firstN) {
   return function(replicates) {
     return median(replicates.slice(firstN));
   }
@@ -141,6 +142,7 @@ function func_medianAfterRemovingFirst(firstN) {
 
 
 // Takes an object of {k1: v1, k2: v2, ...} and returns an array [v1, v2, ...]
+// NOTE: the order is arbitrary
 function arrayify(flatObject) {
   var arr = [];
   for (var i in flatObject) {
@@ -151,15 +153,15 @@ function arrayify(flatObject) {
 }
 
 // basic suite summary from named (but unordered) subtest summaries
-function arrayifyThenGeomean(subtests_summaries_object) {
+function geomeanSubtests(subtests_summaries_object) {
   return geomean(arrayify(subtests_summaries_object));
 }
 
-function arrayifyThenSum(subtests_summaries_object) {
+function sumSubtests(subtests_summaries_object) {
   return sum(arrayify(subtests_summaries_object));
 }
 
-function dromaeo_subtest_summary(replicates) {
+function dromaeoSubtestSummary(replicates) {
   var CHUNK = 5;
   var means = [];
   for (var i = 0; i < replicates.length; i += CHUNK) {
@@ -169,7 +171,7 @@ function dromaeo_subtest_summary(replicates) {
   return geomean(means);
 }
 
-function v8SubtestSUmmary(replicates, name) {
+function v8SubtestSummary(replicates, name) {
   reference = {
     'Encrypt': 266181.,
     'Decrypt': 266181.,
@@ -240,10 +242,10 @@ function processLog(talosLog) {
   data = simplifyTalosData(data);
   //log("Simplified data:");
   //logJson(data);
-  
+
   // throws a descriptive error on failure
   verifyTalosSummaries(data);
-  
+
   // remove replicates which are not used further
   for (var i in data) {
     delete data[i]["subtest_replicates"];
@@ -272,13 +274,13 @@ function simplifyTalosData(data) {
     for (var j in data[i]["summary"]["subtests"]) {
       subtests[j] = data[i]["summary"]["subtests"][j]["filtered"];
     }
-    
+
     var replicates = suite["subtest_replicates"] = {};
     for (var k in data[i]["results"]) {
       replicates[k] = data[i]["results"][k];
     }
   }
-  
+
   return results;
 }
 
@@ -292,7 +294,7 @@ function verifyTalosSubtestSummary(suiteName, subtestName, subtestSummary, repli
 
   log("   " + (ok ? "OK   " : "ERROR") + ":  subtest " + suiteName + " / " + subtestName +
       ": expected: " + expected + "   got: " + subtestSummary,
-      "replicates", "\n           " + replicates);
+      "replicates", "\n             " + replicates);
   return ok;
 }
 
@@ -301,12 +303,12 @@ function verifyTalosSuiteSummary(suiteName, suiteSummary, subtest_summaries) {
                         ? summaries_reference[suiteName]["suite"]
                         : summaries_reference["_default"]["suite"];
 
-  var expected = reference_func(subtest_summaries);
+  var expected = reference_func(subtest_summaries, suiteName);
   var ok = closeEnough(suiteSummary, expected);
 
   log((ok ? "OK   " : "ERROR") + ":  Suite " + suiteName +
       ": expected: " + expected + "   got: " + suiteSummary,
-      "subtest summaries", "\n        " + JSON.stringify(subtest_summaries));
+      "subtest summaries", "\n          " + JSON.stringify(subtest_summaries));
   return ok;
 }
 
@@ -319,17 +321,17 @@ function verifyTalosSuiteSummaries(suiteName, suiteData) {
     //log("verifying replicates for " + i + "  expected: " + suiteData["subtest_summaries"][i] + "   replicates: " + suiteData["subtest_replicates"][i]);
     numErrors += verifyTalosSubtestSummary(suiteName, i, suiteData["subtest_summaries"][i], suiteData["subtest_replicates"][i]);
   }
-  
+
   return numErrors;
 }
 
 
 // input: the entire simplified talos data
 function verifyTalosSummaries(data) {
-  log("Verifying summaries within the log...\n\n");
+  log("Verifying summaries within the log...\n");
   for (var suite in data) {
     verifyTalosSuiteSummaries(suite, data[suite]);
-    log("\n\n");
+    log("\n");
   }
 }
 
@@ -339,7 +341,7 @@ function jsonFromTalosLog(talosLog) {
     log("Error: cannot detect 'TALOSDATA' section at the log");
     return false;
   }
-  
+
   return JSON.parse(start.split("}}]")[0] + "}}]");
 }
 
@@ -355,7 +357,7 @@ function jsonFromTalosLog(talosLog) {
 //   requestHeaders: array of request headers where each item is an array of [key, value]
 function read(url, control) {
   var d = NoPromise.deferred();
-  try {      
+  try {
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function() {
       if (xhr.readyState === 4)
@@ -410,15 +412,15 @@ function gunzipLog(data) {
       var abyte = data.charCodeAt(fileidx) & 0xff;
       bytes.push(abyte);
   }
-  
-  var  gunzip  =  new  Zlib.Gunzip ( bytes ); 
+
+  var  gunzip  =  new  Zlib.Gunzip ( bytes );
   var  plain  =  gunzip.decompress ();
   if (!plain)
     return false;
 
   // Now go ahead and create an ascii string from all those bytes.
   var asciistring = "";
-  for (var i = 0; i < plain.length; i++) {         
+  for (var i = 0; i < plain.length; i++) {
        asciistring += String.fromCharCode(plain[i]);
   }
 
@@ -539,7 +541,7 @@ function median(v) {
 
   if (len % 2)
     return v[(len - 1) / 2];
-    
+
   return average([v[len / 2], v[len / 2 - 1]]);
 }
 
