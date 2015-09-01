@@ -192,7 +192,7 @@ function processUrl(talosLogUrl) {
   fetchTalosLog(talosLogUrl)
   .then(
     function(talosLog) {
-      log("OK: Got talos log.\n\n");
+      log("OK: Got talos log.\n");
       setTimeout(processLog, 0, talosLog);
     },
     function(reason) {
@@ -234,8 +234,8 @@ function fetchTalosLog(logUrl) {
 // - The log file is the one we need (doesn't verify platform etc)
 function processLog(talosLog) {
   var data = jsonFromTalosLog(talosLog);
-  log("", "Talos JSON", JSON.stringify(data, null, 2));
-  log("\n\n");
+  log("", "Talos JSON", "\n" + jsonPrettify(data));
+  log("\n");
 
   data = simplifyTalosData(data);
   //log("Simplified data:");
@@ -248,8 +248,7 @@ function processLog(talosLog) {
   for (var i in data) {
     delete data[i]["subtest_replicates"];
   }
-  log("Effective talos output:");
-  logJson(data);
+  log("", "Effective talos output", "\n" + jsonPrettify(data));
 
   return data;
 }
@@ -285,15 +284,15 @@ function simplifyTalosData(data) {
 
 function verifyTalosSubtestSummary(suiteName, subtestName, subtestSummary, replicates) {
   var reference_func = summaries_reference[suiteName] && summaries_reference[suiteName]["subtest"]
-                        ? summaries_reference[suiteName]["subtest"]
-                        : summaries_reference["_default"]["subtest"];
-  //log("got replicates: " + replicates + "\ngot subtest reference: " + reference_func);
+                         ? summaries_reference[suiteName]["subtest"]
+                         : summaries_reference["_default"]["subtest"];
+
   var expected = reference_func(replicates, subtestName);
-  //log("got subtest expected: " + expected);
   var ok = closeEnough(subtestSummary, expected);
+
   log("   " + (ok ? "OK   " : "ERROR") + ":  subtest " + suiteName + " / " + subtestName +
       ": expected: " + expected + "   got: " + subtestSummary,
-      "replicates", "        " + replicates);
+      "replicates", "\n           " + replicates);
   return ok;
 }
 
@@ -303,12 +302,11 @@ function verifyTalosSuiteSummary(suiteName, suiteSummary, subtest_summaries) {
                         : summaries_reference["_default"]["suite"];
 
   var expected = reference_func(subtest_summaries);
-  //if (!closeEnough(suiteSummary, expected))
-  //  throw("Suite summary: expected: " + expected + "   got: " + suiteSummary);
   var ok = closeEnough(suiteSummary, expected);
+
   log((ok ? "OK   " : "ERROR") + ":  Suite " + suiteName +
       ": expected: " + expected + "   got: " + suiteSummary,
-      "subtest summaries", "        " + JSON.stringify(subtest_summaries));
+      "subtest summaries", "\n        " + JSON.stringify(subtest_summaries));
   return ok;
 }
 
@@ -488,10 +486,10 @@ function log(text, collapsedTitle, collapsedData) {
   if (collapsedTitle && collapsedData) {
     if (LOG_ALLOW_COLLAPSE) {
       var id = "out_id_" + ++out_id;
-      out += "   <a href = 'javascript:toggleCollapsed(\"" + id + "\")'>" + collapsedTitle + "</a>" +
-             "<span style = 'display: none' id = '" + id + "'>:\n" + collapsedData + "</span>";
+      out += (out ? "   " : "") + "<a href = 'javascript:toggleCollapsed(\"" + id + "\")'>" + collapsedTitle + "</a>" +
+             "<span style = 'display: none' id = '" + id + "'>: " + collapsedData + "</span>";
     } else {
-      out += collapsedTitle + ": " + collapsedData;
+      out += (out ? "   " : "") + collapsedTitle + ": " + collapsedData;
     }
   }
 
@@ -502,8 +500,12 @@ function log(text, collapsedTitle, collapsedData) {
   $(OUT_ID).innerHTML += out + "\n";
 }
 
+function jsonPrettify(obj) {
+  return JSON.stringify(obj, null, 2)
+}
+
 function logJson(obj) {
-  log(JSON.stringify(obj, null, 2));
+  log(jsonPrettify(obj));
 }
 
 function fixed(n) {
