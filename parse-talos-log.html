@@ -33,7 +33,7 @@ var summaries_reference = {
   
   // d job: TODO: v8 subtest could be buggy at talos, or log missing the replicates
   v8_7: {
-    subtest: func_medianAfterRemovingFirst(1),
+    subtest: v8SubtestSUmmary,
     suite  : function (subtestsObj) { return 100 * arrayifyThenGeomean(subtestsObj); }
   },
 
@@ -169,6 +169,22 @@ function dromaeo_subtest_summary(replicates) {
   return geomean(means);
 }
 
+function v8SubtestSUmmary(replicates, name) {
+  reference = {
+    'Encrypt': 266181.,
+    'Decrypt': 266181.,
+    'DeltaBlue': 66118.,
+    'Earley': 666463.,
+    'Boyer': 666463.,
+    'NavierStokes': 1484000.,
+    'RayTrace': 739989.,
+    'RegExp': 910985.,
+    'Richards': 35302.,
+    'Splay': 81491.
+  };
+
+  return reference[name] / geomean(replicates)
+}
 
 
 function processUrl(talosLogUrl) {
@@ -272,7 +288,7 @@ function verifyTalosSubtestSummary(suiteName, subtestName, subtestSummary, repli
                         ? summaries_reference[suiteName]["subtest"]
                         : summaries_reference["_default"]["subtest"];
   //log("got replicates: " + replicates + "\ngot subtest reference: " + reference_func);
-  var expected = reference_func(replicates);
+  var expected = reference_func(replicates, subtestName);
   //log("got subtest expected: " + expected);
   var ok = closeEnough(subtestSummary, expected);
   log("   " + (ok ? "OK   " : "ERROR") + ":  subtest " + suiteName + " / " + subtestName +
