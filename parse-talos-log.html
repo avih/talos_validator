@@ -11,129 +11,165 @@ var VERIFICATION_TOLERANCE_PERCENTAGE = 0.1;
 var summaries_reference = {
   _default: {
     subtest: function(data) {
-               log("Warning: using default subtest summary");
-               return func_removeFirstThenMedian(1)(data);
+               log("   Warning: using default subtest summary");
+               return func_medianAfterRemovingFirst(1)(data);
              },
     suite:   function(data) {
                log("Warning: using default suite summary");
-               return func_arrayifyThenGeomean()(data);
+               return arrayifyThenGeomean(data);
              }
   },
 
   // c job
   tresize: {
-    subtest: func_removeFirstThenMedian(5),
-    suite  : func_arrayifyThenGeomean()
+    subtest: func_medianAfterRemovingFirst(5),
+    suite  : arrayifyThenGeomean
   },
 
   tcanvasmark: {
-    subtest: func_removeFirstThenMedian(1),
-    //suite  : func_arrayifyThenGeomean()
+    subtest: func_medianAfterRemovingFirst(1),
+    suite  : arrayifyThenSum
   },
   
-  // d job: TODO: dromaeo_css, kraken, v8
+  // d job: TODO: v8 subtest could be buggy at talos, or log missing the replicates
+  v8_7: {
+    subtest: func_medianAfterRemovingFirst(1),
+    suite  : function (subtestsObj) { return 100 * arrayifyThenGeomean(subtestsObj); }
+  },
+
+  kraken: {
+    subtest: average,
+    suite  : arrayifyThenSum
+  },
+
+  dromaeo_css: {
+    subtest: dromaeo_subtest_summary,
+    suite  : arrayifyThenGeomean
+  },
+
 
   // g1 job
   tp5o_scroll: {
-    subtest: func_removeFirstThenMedian(1),
-    suite  : func_arrayifyThenGeomean()
+    subtest: func_medianAfterRemovingFirst(1),
+    suite  : arrayifyThenGeomean
   },
 
   glterrain: {
-    subtest: func_removeFirstThenMedian(1),
-    suite  : func_arrayifyThenGeomean()
+    subtest: func_medianAfterRemovingFirst(1),
+    suite  : arrayifyThenGeomean
   },
   
 
   // g2 job
   damp: {
-    subtest: func_removeFirstThenMedian(1),
-    suite  : func_arrayifyThenGeomean()
+    subtest: func_medianAfterRemovingFirst(1),
+    suite  : arrayifyThenGeomean
   },
   
   tps: {
-    subtest: func_removeFirstThenMedian(1),
-    suite  : func_arrayifyThenGeomean()
+    subtest: func_medianAfterRemovingFirst(1),
+    suite  : arrayifyThenGeomean
   },
   
 
   // o job
   a11yr: {
-    subtest: func_removeFirstThenMedian(1),
-    suite  : func_arrayifyThenGeomean()
+    subtest: func_medianAfterRemovingFirst(1),
+    suite  : arrayifyThenGeomean
   },
 
   ts_paint: {
-    subtest: func_removeFirstThenMedian(1),
-    suite  : func_arrayifyThenGeomean()
+    subtest: func_medianAfterRemovingFirst(1),
+    suite  : arrayifyThenGeomean
   },
 
   tpaint: {
-    subtest: func_removeFirstThenMedian(5),
-    suite  : func_arrayifyThenGeomean()
+    subtest: func_medianAfterRemovingFirst(5),
+    suite  : arrayifyThenGeomean
   },
 
   sessionrestore: {
-    subtest: func_removeFirstThenMedian(1),
-    suite  : func_arrayifyThenGeomean()
+    subtest: func_medianAfterRemovingFirst(1),
+    suite  : arrayifyThenGeomean
   },
 
   sessionrestore_no_auto_restore: {
-    subtest: func_removeFirstThenMedian(1),
-    suite  : func_arrayifyThenGeomean()
+    subtest: func_medianAfterRemovingFirst(1),
+    suite  : arrayifyThenGeomean
   },
 
   
   // s job
   tsvgx: {
-    subtest: func_removeFirstThenMedian(5),
-    suite  : func_arrayifyThenGeomean()
+    subtest: func_medianAfterRemovingFirst(5),
+    suite  : arrayifyThenGeomean
   },
 
   tsvgr_opacity: {
-    subtest: func_removeFirstThenMedian(5),
-    suite  : func_arrayifyThenGeomean()
+    subtest: func_medianAfterRemovingFirst(5),
+    suite  : arrayifyThenGeomean
   },
 
   tscrollx: {
-    subtest: func_removeFirstThenMedian(5),
-    suite  : func_arrayifyThenGeomean()
+    subtest: func_medianAfterRemovingFirst(5),
+    suite  : arrayifyThenGeomean
   },
 
   tart: {
-    subtest: func_removeFirstThenMedian(1),
-    suite  : func_arrayifyThenGeomean()
+    subtest: func_medianAfterRemovingFirst(1),
+    suite  : arrayifyThenGeomean
   },
 
   cart: {
-    subtest: func_removeFirstThenMedian(1),
-    suite  : func_arrayifyThenGeomean()
+    subtest: func_medianAfterRemovingFirst(1),
+    suite  : arrayifyThenGeomean
   },
 
   // tp job
   tp5o: {
-    subtest: func_removeFirstThenMedian(5),
-    suite  : func_arrayifyThenGeomean()
+    subtest: func_medianAfterRemovingFirst(5),
+    suite  : arrayifyThenGeomean
   }
 }
 
 // the basic subtest summary filter template
-function func_removeFirstThenMedian(firstN) {
+function func_medianAfterRemovingFirst(firstN) {
   return function(replicates) {
     return median(replicates.slice(firstN));
   }
 }
 
-// basic suite summary from named (but unordered) subtest summaries
-function func_arrayifyThenGeomean() {
-  return function(subtests_summaries_object) {
-    var arr = [];
-    for (var i in subtests_summaries_object) {
-      arr.push(subtests_summaries_object[i]);
-    }
-    return geomean(arr);
-  };
+
+// Takes an object of {k1: v1, k2: v2, ...} and returns an array [v1, v2, ...]
+function arrayify(flatObject) {
+  var arr = [];
+  for (var i in flatObject) {
+    arr.push(flatObject[i]);
+  }
+
+  return arr;
 }
+
+// basic suite summary from named (but unordered) subtest summaries
+function arrayifyThenGeomean(subtests_summaries_object) {
+  return geomean(arrayify(subtests_summaries_object));
+}
+
+function arrayifyThenSum(subtests_summaries_object) {
+  return sum(arrayify(subtests_summaries_object));
+}
+
+function dromaeo_subtest_summary(replicates) {
+  var CHUNK = 5;
+  var means = [];
+  for (var i = 0; i < replicates.length; i += CHUNK) {
+    means.push(average(replicates.slice(i, i + CHUNK)));
+  }
+
+  return geomean(means);
+}
+
+
 
 function processUrl(talosLogUrl) {
   log("Fetching talos log from " + talosLogUrl);
@@ -425,7 +461,7 @@ function sum(v) {
   return s;
 }
 
-function avg(v) {
+function average(v) {
   return v.length ? sum(v) / v.length : 0;
 }
 
@@ -440,7 +476,7 @@ function median(v) {
   if (len % 2)
     return v[(len - 1) / 2];
     
-  return avg([v[len / 2], v[len / 2 - 1]]);
+  return average([v[len / 2], v[len / 2 - 1]]);
 }
 
 function geomean(v) {
