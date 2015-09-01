@@ -430,13 +430,59 @@ function toggleCollapsed(id) {
   }
 }
 
+var LOG_ALLOW_COLLAPSE = true;
+var LOG_AUTO_COLOR     = true;
+
+var COLOR_OK    = {bg: "#e0ffe0", fg: "inherit"};
+var COLOR_WARN  = {bg: "#ffffc0", fg: "inherit"};
+var COLOR_ERROR = {bg: "#ffe0e0", fg: "inherit"};
+
+
+function colorify(content, color) {
+  return "<span style='background-color: " + color.bg + "; foreground-color: " + color.fg + ";'>" +
+         content +
+         "</span>";
+}
+
+function autoColor(content) {
+  var strs = {
+    "ok"    : COLOR_OK,
+    "warn"  : COLOR_WARN,
+    "error" : COLOR_ERROR
+  };
+
+  var color = false;
+
+  for (var s in strs) {
+    if (content.trim().toLowerCase().indexOf(s) == 0) {
+      color = strs[s];
+      break;
+    }
+  }
+
+  if (color) {
+    content = colorify(content, color);
+  }
+
+  return content;
+}
+
 function log(text, collapsedTitle, collapsedData) {
   var out = text;
   if (collapsedTitle && collapsedData) {
-    var id = "out_id_" + ++out_id;
-    out += "   <a href = 'javascript:toggleCollapsed(\"" + id + "\")'>" + collapsedTitle + "</a>" +
-           "<span style = 'display: none' id = '" + id + "'>:\n" + collapsedData + "</span>";
+    if (LOG_ALLOW_COLLAPSE) {
+      var id = "out_id_" + ++out_id;
+      out += "   <a href = 'javascript:toggleCollapsed(\"" + id + "\")'>" + collapsedTitle + "</a>" +
+             "<span style = 'display: none' id = '" + id + "'>:\n" + collapsedData + "</span>";
+    } else {
+      out += collapsedTitle + ": " + collapsedData;
+    }
   }
+
+  if (LOG_AUTO_COLOR) {
+    out = autoColor(out);
+  }
+
   $(OUT_ID).innerHTML += out + "\n";
 }
 
