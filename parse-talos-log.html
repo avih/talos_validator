@@ -235,8 +235,9 @@ function fetchTalosLog(logUrl) {
 // - A talos log doesn't have the same suite name twice
 // - The log file is the one we need (doesn't verify platform etc)
 function processLog(talosLog) {
-  log("", "Raw log", "\n" + talosLog);
-  log("\n");
+// this can be quite big and can slows down the page.
+//  log("", "Raw log", "\n" + talosLog);
+//  log("\n");
 
   var data = jsonFromTalosLog(talosLog);
   log("", "Talos JSON", "\n" + jsonPrettify(data));
@@ -613,44 +614,81 @@ function closeEnough(a, b) {
 // Promise - NoPromise.pico for the browser: https://github.com/avih/nopromise/tree/master/pico
 function NoPromise(){function e(e){n||(n=this,o=e,c.forEach(r))}function t(e,t){function i(){var r=2>n?e:t;typeof r!=p?(2>n?a:s)(o):f(0,r)}function f(e,t){function n(e){c++||s(e)}var r,c=0;try{t&&(e=t(o)),e==u?s(TypeError()):(typeof e==p||e&&"object"==typeof e)&&typeof(r=e.then)==p?r.call(e,function(e){c++||f(e)},n):a(e)}catch(i){n(i)}}var u=NoPromise(),a=u.resolve,s=u.reject,p="function";return n?r(i):c.push(i),u}var n,o,r=setTimeout,c=[],i={resolve:e.bind(1),reject:e.bind(2),then:t};return i.promise=i};NoPromise.deferred=NoPromise;
 
-function startFetch() {
+function startFormUrl() {
   logClear();
-  //"file:///E:/dev/moz/src/talos-validator/data/mozilla-inbound_ubuntu64_hw_test-svgr-e10s-bm104-tests1-linux-build213.txt"
-  processUrl($("userUrl").value);
+  var url = $("userUrl").value;
+
+  if (document.location.href.toLowerCase().indexOf("https://") == 0
+      && url.toLowerCase().indexOf("http://") == 0)
+  {
+    url = "https://" + url.substring("http://".length);
+    log("Warning: This page is being served from a secure (https) location, but the log is at a non-secure URL.\n" +
+        "         Trying to access the log securely at: " + url + "\n" +
+        "         To prevent this warning, either access this page with http:// protocol, or use a log on a secure location too\n");
+  }
+
+  processUrl(url);
 }
 
-function startData() {
+function startFormData() {
   logClear();
+  log ("Analysing log pasted fully ...")
   processLog($("userLog").value);
 }
 
-function sampleLog(url) {
+function startUrl(url) {
   $("userUrl").value = url;
-  startFetch();
+  startFormUrl();
 }
 
-//window.addEventListener("load", process);
+
+// e.g. for http://a.b.c:80/some/path.html#x=17&hello=world&bar=baz
+//      returns "17"" for key x, "world" for key "hello", "baz" for key "bar", and "" for key "foo"
+function getValueFromHashLocation(key) {
+  return ("&" + ((document.location + "#").split("#")[1]) + ("&" + key + "="))
+         .split("&" + key + "=")[1]
+         .split("&")[0];
+}
+
+function checkAutoLogUrl() {
+  var url = getValueFromHashLocation("log");
+  if (url) {
+    startUrl(url);
+  }
+}
+
 </script>
 </head>
 
-<body>
-  <form action="javascript:startFetch()">
+<body onload="checkAutoLogUrl()">
+  <form action="javascript:startFormUrl()">
     Enter talos log URL:
     <input type = "text" size = "100" id="userUrl"></input>
     <button type = "submit">Fetch log and analyse</button>
     <br/>
-    Analyse sample job log (within this repo):
-      <a href="javascript:sampleLog('data/c_sample_log.gz')">c</a>
-      <a href="javascript:sampleLog('data/d_sample_log.gz')">d</a>
-      <a href="javascript:sampleLog('data/g1_sample_log.gz')">g1</a>
-      <a href="javascript:sampleLog('data/g2_sample_log.gz')">g2</a>
-      <a href="javascript:sampleLog('data/o_sample_log.gz')">o</a>
-      <a href="javascript:sampleLog('data/s_sample_log.gz')">s</a>
-      <a href="javascript:sampleLog('data/tp_sample_log.gz')">tp</a>
+    Or analyse a sample job log:
+      <a href="javascript:startUrl('data/c_sample_log.gz')">c</a>
+      <a href="javascript:startUrl('data/d_sample_log.gz')">d</a>
+      <a href="javascript:startUrl('data/g1_sample_log.gz')">g1</a>
+      <a href="javascript:startUrl('data/g2_sample_log.gz')">g2</a>
+      <a href="javascript:startUrl('data/o_sample_log.gz')">o</a>
+      <a href="javascript:startUrl('data/s_sample_log.gz')">s</a>
+      <a href="javascript:startUrl('data/tp_sample_log.gz')">tp</a>
+
+      <script>
+        document.write("&nbsp;&nbsp;&nbsp;&nbsp;");
+        if (document.location.href.toLowerCase().indexOf("file://") == 0) {
+          document.write("<span style='color: gray;'>Bookmarklet not available when served locally</span>");
+        } else {
+          document.write("Boomark this and invoke it on a talos log: ");
+          document.write("<a href='javascript:document.location = \"" + document.location.href.split("#")[0] + "#log=\" + document.location;'>Analyse talos log</a>");
+        }
+      </script>
   </form>
+
   <br/>
 
-  <form action="javascript:startData()">
+  <form action="javascript:startFormData()">
     Or paste a full log here:
     <textarea rows = "10" cols = "90" id="userLog"></textarea>
     <button type = "submit">Analyse log</button>
