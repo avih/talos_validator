@@ -235,6 +235,9 @@ function fetchTalosLog(logUrl) {
 // - A talos log doesn't have the same suite name twice
 // - The log file is the one we need (doesn't verify platform etc)
 function processLog(talosLog) {
+  log("", "Raw log", "\n" + talosLog);
+  log("\n");
+
   var data = jsonFromTalosLog(talosLog);
   log("", "Talos JSON", "\n" + jsonPrettify(data));
   log("\n");
@@ -637,13 +640,13 @@ function sampleLog(url) {
     <button type = "submit">Fetch log and analyse</button>
     <br/>
     Analyse sample job log (within this repo):
-      <a href="javascript:sampleLog('data/c_sample_log.txt.gz')">c</a>
-      <a href="javascript:sampleLog('data/d_sample_log.txt.gz')">d</a>
-      <a href="javascript:sampleLog('data/g1_sample_log.txt.gz')">g1</a>
-      <a href="javascript:sampleLog('data/g2_sample_log.txt.gz')">g2</a>
-      <a href="javascript:sampleLog('data/o_sample_log.txt.gz')">o</a>
-      <a href="javascript:sampleLog('data/s_sample_log.txt.gz')">s</a>
-      <a href="javascript:sampleLog('data/tp_sample_log.txt.gz')">tp</a>
+      <a href="javascript:sampleLog('data/c_sample_log.gz')">c</a>
+      <a href="javascript:sampleLog('data/d_sample_log.gz')">d</a>
+      <a href="javascript:sampleLog('data/g1_sample_log.gz')">g1</a>
+      <a href="javascript:sampleLog('data/g2_sample_log.gz')">g2</a>
+      <a href="javascript:sampleLog('data/o_sample_log.gz')">o</a>
+      <a href="javascript:sampleLog('data/s_sample_log.gz')">s</a>
+      <a href="javascript:sampleLog('data/tp_sample_log.gz')">tp</a>
   </form>
   <br/>
 
